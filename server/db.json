@@ -1,0 +1,26 @@
+{
+  "logs": [
+    {
+      "id": 1,
+      "date": "2025-11-20",
+      "type": "Run",
+
+      "durationMin": 30,
+      "calories": 300
+    },
+    {
+      "id": 2,
+      "date": "2025-11-22",
+      "type": "Yoga",
+      "durationMin": 45,
+      "calories": 120
+    }
+  ],
+  "tips": [
+    "Consistency beats intensity. Keep showing up.",
+    "Small progress is still progress — celebrate it!",
+    "Hydrate before and after exercise to boost recovery.",
+    "Focus on form over speed to avoid injuries.",
+    "Rest days are important — they help gains consolidate."
+  ]
+}
