@@ -1,0 +1,30 @@
+name: Rollback Deployment
+
+on:
+  workflow_run:
+    workflows: ["Production Release"]
+    types:
+      - completed
+
+jobs:
+
+  rollback:
+
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Get Previous Tag
+        run: |
+          git fetch --tags
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^)
+          echo "Previous release: $PREVIOUS_TAG"
+
+      - name: Rollback Deployment
+        run: |
+          echo "Rolling back to previous version..."
