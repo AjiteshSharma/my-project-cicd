@@ -16,15 +16,38 @@ jobs:
 
     steps:
 
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Get Previous Tag
-        run: |
-          git fetch --tags
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^)
-          echo "Previous release: $PREVIOUS_TAG"
+      - name: Fetch tags
+        run: git fetch --tags
 
-      - name: Rollback Deployment
+      - name: Get previous release tag
+        id: previous
         run: |
-          echo "Rolling back to previous version..."
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "Previous tag: $PREV_TAG"
+          echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+
+      - name: Check if previous tag exists
+        if: steps.previous.outputs.tag == ''
+        run: |
+          echo "No previous release found. Cannot rollback."
+          exit 1
+
+      - name: Pull previous Docker image
+        run: |
+          docker pull myapp:${{ steps.previous.outputs.tag }}
+
+      - name: Stop running container
+        run: |
+          docker stop myapp || true
+          docker rm myapp || true
+
+      - name: Redeploy previous version
+        run: |
+          docker run -d -p 3000:3000 --name myapp myapp:${{ steps.previous.outputs.tag }}
+
+      - name: Mark rollback complete
+        run: |
+          echo "Rollback successful. Previous version redeployed." version..."
