@@ -26,7 +26,7 @@ function Dashboard() {
   return (
     <div>
       <div className="cards">
-        <SummaryCard title="Total Workouts" value={totals.totalWorkouts} sub="Sessions logged" />
+        <SummaryCard title="Total" value={totals.totalWorkouts} sub="Sessions logged" />
         <SummaryCard title="Calories Burned" value={`${totals.totalCalories} kcal`} sub="Approx total" />
         <SummaryCard title="Total Time" value={`${totals.totalMinutes} min`} sub="Minutes" />
       </div>
