@@ -1,84 +1,68 @@
+
 // server/server.js
-const express = require("express");
-const cors = require("cors");
-const fs = require("fs").promises;
-const path = require("path");
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs').promises;
+const path = require('path');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-const DB_PATH = path.join(__dirname, "db.json");
+const DB_PATH = path.join(__dirname, 'db.json');
 
-/* -------------------------------
-   Ensure DB file exists
---------------------------------*/
-async function ensureDB() {
+/* ---------------------------
+   Root Route (for deployment check)
+--------------------------- */
+app.get('/', (req, res) => {
+  res.send('Fitness Tracker API Running 🚀');
+});
+
+/* ---------------------------
+   Helper: Read DB
+--------------------------- */
+async function readDB() {
   try {
-    await fs.access(DB_PATH);
-  } catch {
-    const initialData = {
-      logs: [],
-      tips: [
-        "Consistency beats intensity. Keep showing up.",
-        "Hydrate before and after workouts.",
-        "Stretch to prevent injury.",
-        "Rest days are important for recovery."
-      ]
-    };
-    await fs.writeFile(DB_PATH, JSON.stringify(initialData, null, 2));
+    const txt = await fs.readFile(DB_PATH, 'utf8');
+    return JSON.parse(txt);
+  } catch (err) {
+    return { logs: [], tips: [] };
   }
 }
 
-/* -------------------------------
-   Read DB
---------------------------------*/
-async function readDB() {
-  await ensureDB();
-  const txt = await fs.readFile(DB_PATH, "utf8");
-  return JSON.parse(txt);
+/* ---------------------------
+   Helper: Write DB
+--------------------------- */
+async function writeDB(obj) {
+  const tmpPath = DB_PATH + '.tmp';
+  await fs.writeFile(tmpPath, JSON.stringify(obj, null, 2), 'utf8');
+  await fs.rename(tmpPath, DB_PATH);
 }
 
-/* -------------------------------
-   Write DB
---------------------------------*/
-async function writeDB(data) {
-  const tmp = DB_PATH + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-  await fs.rename(tmp, DB_PATH);
-}
-
-/* -------------------------------
-   Health Route
---------------------------------*/
-app.get("/", (req, res) => {
-  res.send("Fitness Tracker API Running 🚀");
-});
-
-/* -------------------------------
+/* ---------------------------
    GET Logs
---------------------------------*/
-app.get("/api/logs", async (req, res) => {
+--------------------------- */
+app.get('/api/logs', async (req, res) => {
   try {
     const db = await readDB();
-    res.json({ logs: db.logs });
+    res.json({ logs: db.logs || [] });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch logs" });
+    res.status(500).json({ error: 'failed to read logs' });
   }
 });
 
-/* -------------------------------
-   Add Log
---------------------------------*/
-app.post("/api/logs", async (req, res) => {
+/* ---------------------------
+   POST Log
+--------------------------- */
+app.post('/api/logs', async (req, res) => {
   try {
     const { date, type, durationMin, calories } = req.body;
 
-    if (!date || !type || typeof durationMin !== "number") {
-      return res
-        .status(400)
-        .json({ error: "date, type and numeric durationMin required" });
+    if (!date || !type || typeof durationMin !== 'number') {
+      return res.status(400).json({
+        error: 'date, type and numeric durationMin required'
+      });
     }
 
     const db = await readDB();
@@ -95,74 +79,81 @@ app.post("/api/logs", async (req, res) => {
     await writeDB(db);
 
     res.status(201).json({ log: newLog });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to save log" });
+    console.error('POST /api/logs error', err);
+    res.status(500).json({ error: 'failed to save log' });
   }
 });
 
-/* -------------------------------
-   Delete Log
---------------------------------*/
-app.delete("/api/logs/:id", async (req, res) => {
+/* ---------------------------
+   DELETE Log
+--------------------------- */
+app.delete('/api/logs/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
     const db = await readDB();
 
     const before = db.logs.length;
-    db.logs = db.logs.filter((l) => l.id !== id);
+    db.logs = db.logs.filter(l => l.id !== id);
 
-    if (before === db.logs.length) {
-      return res.status(404).json({ error: "Log not found" });
+    if (db.logs.length === before) {
+      return res.status(404).json({ error: 'log not found' });
     }
 
     await writeDB(db);
 
     res.status(204).end();
+
   } catch (err) {
-    res.status(500).json({ error: "Failed to delete log" });
+    console.error('DELETE /api/logs error', err);
+    res.status(500).json({ error: 'failed to delete' });
   }
 });
 
-/* -------------------------------
-   Get Tips
---------------------------------*/
-app.get("/api/tips", async (req, res) => {
+/* ---------------------------
+   GET Tips
+--------------------------- */
+app.get('/api/tips', async (req, res) => {
   try {
     const db = await readDB();
-    res.json({ tips: db.tips });
+    res.json({ tips: db.tips || [] });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch tips" });
+    res.status(500).json({ error: 'failed to read tips' });
   }
 });
 
-/* -------------------------------
-   Add Tip
---------------------------------*/
-app.post("/api/tips", async (req, res) => {
+/* ---------------------------
+   POST Tip
+--------------------------- */
+app.post('/api/tips', async (req, res) => {
   try {
     const { tip } = req.body;
 
     if (!tip) {
-      return res.status(400).json({ error: "Tip is required" });
+      return res.status(400).json({ error: 'tip required' });
     }
 
     const db = await readDB();
 
+    db.tips = db.tips || [];
     db.tips.push(tip);
+
     await writeDB(db);
 
     res.status(201).json({ tip });
+
   } catch (err) {
-    res.status(500).json({ error: "Failed to save tip" });
+    res.status(500).json({ error: 'failed to save tip' });
   }
 });
 
-/* -------------------------------
+/* ---------------------------
    Start Server
---------------------------------*/
+--------------------------- */
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
