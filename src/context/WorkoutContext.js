@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 const WorkoutContext = createContext();
 export function useWorkouts() { return useContext(WorkoutContext); }
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = "https://fitness-tracker-server.onrender.com";;
 
 export function WorkoutProvider({ children }) {
   const [logs, setLogs] = useState(() => {
