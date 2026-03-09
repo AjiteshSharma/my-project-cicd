@@ -1,0 +1,29 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - "feature/*"
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16,18]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/setup-env
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

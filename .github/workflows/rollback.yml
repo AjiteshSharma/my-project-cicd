@@ -1,0 +1,53 @@
+name: Rollback Deployment
+
+on:
+  workflow_run:
+    workflows: ["Production Release"]
+    types:
+      - completed
+
+jobs:
+
+  rollback:
+
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Fetch tags
+        run: git fetch --tags
+
+      - name: Get previous release tag
+        id: previous
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "Previous tag: $PREV_TAG"
+          echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+
+      - name: Check if previous tag exists
+        if: steps.previous.outputs.tag == ''
+        run: |
+          echo "No previous release found. Cannot rollback."
+          exit 1
+
+      - name: Pull previous Docker image
+        run: |
+          docker pull myapp:${{ steps.previous.outputs.tag }}
+
+      - name: Stop running container
+        run: |
+          docker stop myapp || true
+          docker rm myapp || true
+
+      - name: Redeploy previous version
+        run: |
+          docker run -d -p 3000:3000 --name myapp myapp:${{ steps.previous.outputs.tag }}
+
+      - name: Mark rollback complete
+        run: |
+          echo "Rollback successful. Previous version redeployed." version..."

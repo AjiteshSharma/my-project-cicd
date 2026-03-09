@@ -1,0 +1,12 @@
+name: Setup Environment
+
+runs:
+  using: "composite"
+
+  steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - run: npm install
+      shell: bash
